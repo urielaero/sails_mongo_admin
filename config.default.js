@@ -63,6 +63,7 @@ module.exports = {
     //  subprocess - spawns a mongo command line as a subprocess and pipes output to mongo express
     cmdType: 'eval',
     //subprocessTimeout: number of seconds of non-interaction before a subprocess is shut down
-    subprocessTimeout: 300
+    subprocessTimeout: 300,
+    //sailsPaths:['/home/user/repo/sailsApp/']
   }
 };
