@@ -1,15 +1,40 @@
 var config = require('../config');
 var bson = require('../bson');
+var util = require('util');
+var mongodb = require('mongodb');
 
 
-exports.viewDocument = function(req, res, next) {  
+exports.viewDocument = function(req, res, next) {
   var ctx = {
-    title: 'Viewing Document: ' + req.document._id,
+    title: 'Viewing Document: !!' + req.document._id,
     editorTheme: config.options.editorTheme,
-    docString: bson.toString(req.document)
+    docString: bson.toString(req.document),
+    relations:req.relations,
+    relationsName:req.relationsName,
+    relationsKey: req.relationsName && Object.keys(req.relationsName) || false,
   };
 
-  res.render('document', ctx);
+  //var rls = { fraction: 'article', header: 'article' };
+  if(!ctx.relations)
+      res.render('document', ctx);
+  else{
+    ctx.preprocess = function(ori,collection){
+        var obj = ori.toObject();
+        delete obj.id;
+        delete obj._id;
+
+        if(req.rls[collection] && obj[req.rls[collection]]){
+            var key = req.rls[collection]
+            obj[key] = {model:key,id:obj[key]}
+        }
+        //obj['article'] = {model:'article',id:obj.article};
+
+        return bson.toString(obj);
+    };
+    res.render('documentRels', ctx);
+
+  }
+
 };
 
 
@@ -46,7 +71,6 @@ exports.addDocument = function(req, res, next) {
 
 exports.updateDocument = function(req, res, next) {
   var doc = req.body.document;
-
   if (doc == undefined || doc.length == 0) {
     req.session.error = "You forgot to enter a document!";
     return res.redirect('back');
@@ -72,7 +96,8 @@ exports.updateDocument = function(req, res, next) {
     }
 
     req.session.success = "Document updated!";
-    res.redirect(config.site.baseUrl+'db/' + req.dbName + '/' + req.collectionName);
+    return res.redirect('back');
+    //res.redirect(config.site.baseUrl+'db/' + req.dbName + '/' + req.collectionName+'/'+req.document._id.toString());
   });
 };
 

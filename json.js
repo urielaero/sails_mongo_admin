@@ -80,7 +80,10 @@ function str(key, holder) {
 // If the value has a toJSON method, call it to obtain a replacement value.
 
     //Custom code to handle BSON data types
-    if (value instanceof mongodb.ObjectID) {
+    //console.log('VAL',value,value instanceof mongodb.ObjectID)
+    if (value instanceof mongodb.ObjectID || (value && value.model && value.id)) {
+        if(value.id && value.model)
+            return 'ObjectID("' + value.id + '")';
       return 'ObjectID("' + value + '")';
     } else if (value instanceof mongodb.Timestamp) {
       return 'Timestamp(' + value.high_ + ', ' + value.low_ + ')';

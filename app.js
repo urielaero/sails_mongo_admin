@@ -18,6 +18,8 @@ var app = express();
 
 var config = require('./config');
 
+var Models = require('./models/models');
+
 //Set up swig
 app.engine('html', cons.swig);
 
@@ -32,10 +34,10 @@ app.configure(function(){
   app.set('view options', {layout: false});
   app.use(express.favicon());
   app.use(express.logger('dev'));
-  app.use(config.site.baseUrl,express.static(__dirname + '/public'));  
+  app.use(config.site.baseUrl,express.static(__dirname + '/public'));
   app.use(express.bodyParser());
   app.use(express.cookieParser(config.site.cookieSecret));
-  app.use(express.session({ 
+  app.use(express.session({
     secret: config.site.sessionSecret,
     key: config.site.cookieKeyName
   }));
@@ -228,6 +230,7 @@ app.param('database', function(req, res, next, id) {
     req.db = connections[id];
   }
 
+
   next();
 });
 
@@ -255,14 +258,41 @@ app.param('collection', function(req, res, next, id) {
 });
 
 //:document param MUST be preceded by a :collection param
-app.param('document', function(req, res, next, id) {
-  if (id.length == 24) {
+app.param('document', function(req, res, next, reqId) {
+  var id;
+  if (reqId.length == 24) {
     //Convert id string to mongodb object ID
     try {
-      id = new mongodb.ObjectID.createFromHexString(id);
+      id = new mongodb.ObjectID.createFromHexString(reqId);
     } catch (err) {
     }
   }
+
+  if(Models[req.dbName] && Models[req.dbName].collections[req.collectionName]){
+        var structModel = Models[req.dbName].collections[req.collectionName];
+        var defer = structModel.findOne({id:reqId});
+        var popule = populateAll(structModel,defer);
+        req.rls = getReferIntoRefer(popule.rels,Models[req.dbName]);;
+        defer = popule.defer;
+        //req.populates = popule.rels;
+        defer.exec(function(err,ar){
+            req.collection.findOne({_id: id}, function(err, doc) {
+                if (err || doc == null) {
+                  req.session.error = "Document not found!";
+                      return res.redirect(config.site.baseUrl+'db/' + req.dbName + '/' + req.collectionName);
+                }
+
+                req.document = doc;
+                res.locals.document = doc;
+                req.relations = ar;
+                req.relationsName = popule.rels;
+                next();
+            });
+
+            //next();
+        });
+  }else{
+
 
   req.collection.findOne({_id: id}, function(err, doc) {
     if (err || doc == null) {
@@ -275,6 +305,7 @@ app.param('document', function(req, res, next, id) {
 
     next();
   });
+  }
 });
 
 
@@ -283,6 +314,7 @@ var middleware = function(req, res, next) {
   req.adminDb = adminDb;
   req.databases = databases; //List of database names
   req.collections = collections; //List of collection names in all databases
+  //req.Models = Models;
 
   //Allow page handlers to request an update for collection list
   req.updateCollections = updateCollections;
@@ -314,10 +346,37 @@ if (require.main === module){
 }else{
   //as a module
   console.log('Mongo Express module ready to use on route "'+config.site.baseUrl+'*"');
-  server=http.createServer(app);  
-  module.exports=function(req,res,next){    
+  server=http.createServer(app);
+  module.exports=function(req,res,next){
     server.emit('request', req, res);
   };
 }
 
+function populateAll(Model,defer){
+    var rels = {};
+    for(var m in Model._attributes){
+        var rel = Model._attributes[m];
+        if(rel.model || rel.collection){
+            defer = defer.populate(m);
+            rels[m] = (rel.model || rel.collection);
+        }
+    }
+    //defer = defer.populate('fractions')
+    return {defer:defer,rels:rels};
+}
 
+function getReferIntoRefer(rels,models){//1 level
+    var rls = {};
+    for(var i in rels){
+        var attrs = models.collections[rels[i]]._attributes;
+        var collection = rels[i];
+        for(var att in attrs){
+            var rel = attrs[att];
+            if(rel.model){//el atributo article esta relacionado con el modelo.
+                rls[collection] = att;
+                //rels[att] = true;
+            }
+        }
+    }
+    return rls;
+}

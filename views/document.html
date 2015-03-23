@@ -79,5 +79,30 @@
   }
 #}
 </script>
-
+{% if relationsKey && relations && relationsName%}
+    <h2>Relaciones:</h2>
+    <ul>
+        {% for rel in relationsKey %}
+            {% if relations[rel] && relations[rel].join %}
+                {% for val in relations[rel]%}
+                <li>
+                    <a href="db/{{ dbName }}/{{ relationsName[rel] }}/">{{ relationsName[rel] }}</a>
+                    <span class="divider">/</span>
+                    <a href="db/{{ dbName }}/{{ relationsName[rel] }}/{{ val.id  }}">{{ val.id }}</a>
+                </li>
+                {% endfor %}
+            {% else %}
+                <li>
+                    <a href="db/{{ dbName }}/{{ relationsName[rel] }}/">{{ relationsName[rel] }}</a>
+                    <span class="divider">/</span>
+                    {%if relations[rel] %}
+                        <a href="db/{{ dbName }}/{{ relationsName[rel] }}/{{ relations[rel].id  }}">{{ relations[rel].id }}</a>
+                    {% else %}
+                        <span>SIN ID</span>
+                    {% endif %}
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+{% endif %}
 {% endblock %}
