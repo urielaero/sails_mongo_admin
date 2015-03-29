@@ -34,7 +34,7 @@ function loadWithPath(path){
     }
 
     Models.forEach(function(e,i){
-        if(!e || e.indexOf('.js') == -1) return;
+        if(!e || e.indexOf('.js') == -1 || e[0]=='.') return;
         e = e.replace('.js','');
         var Model = require(path+'/api/models/'+e);
         Model.identity = e.toLowerCase();

@@ -260,6 +260,7 @@ app.param('collection', function(req, res, next, id) {
 //:document param MUST be preceded by a :collection param
 app.param('document', function(req, res, next, reqId) {
   var id;
+  req.document_id = reqId;
   if (reqId.length == 24) {
     //Convert id string to mongodb object ID
     try {
@@ -330,6 +331,7 @@ app.get(config.site.baseUrl+'db/:database/export/:collection', middleware, route
 app.get(config.site.baseUrl+'db/:database/:collection/:document', middleware, routes.viewDocument);
 app.put(config.site.baseUrl+'db/:database/:collection/:document', middleware, routes.updateDocument);
 app.del(config.site.baseUrl+'db/:database/:collection/:document', middleware, routes.deleteDocument);
+app.put(config.site.baseUrl+'callback/:database/:collection/:document', middleware, routes.callbackDocument(Models));
 app.post(config.site.baseUrl+'db/:database/:collection', middleware, routes.addDocument);
 
 app.get(config.site.baseUrl+'db/:database/:collection', middleware, routes.viewCollection);
@@ -370,10 +372,11 @@ function getReferIntoRefer(rels,models){//1 level
     for(var i in rels){
         var attrs = models.collections[rels[i]]._attributes;
         var collection = rels[i];
+	rls[collection] = [];//more than once.
         for(var att in attrs){
             var rel = attrs[att];
             if(rel.model){//el atributo article esta relacionado con el modelo.
-                rls[collection] = att;
+                rls[collection].push(att);
                 //rels[att] = true;
             }
         }

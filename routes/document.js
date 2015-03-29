@@ -12,6 +12,7 @@ exports.viewDocument = function(req, res, next) {
     relations:req.relations,
     relationsName:req.relationsName,
     relationsKey: req.relationsName && Object.keys(req.relationsName) || false,
+    buttonCallUpdate: config.options.callbackUpdate && config.options.callbackUpdate[req.dbName]
   };
 
   //var rls = { fraction: 'article', header: 'article' };
@@ -22,12 +23,13 @@ exports.viewDocument = function(req, res, next) {
         var obj = ori.toObject();
         delete obj.id;
         delete obj._id;
-
-        if(req.rls[collection] && obj[req.rls[collection]]){
-            var key = req.rls[collection]
-            obj[key] = {model:key,id:obj[key]}
+	
+        var rls = req.rls[collection] || [];
+        for(var col=0;col<rls.length;col++){
+            var key = rls[col];
+            if(obj[key])
+            obj[key] = {model:key,id:obj[key]};
         }
-        //obj['article'] = {model:'article',id:obj.article};
 
         return bson.toString(obj);
     };
@@ -114,3 +116,32 @@ exports.deleteDocument = function(req, res, next) {
     res.redirect(config.site.baseUrl+'db/' + req.dbName + '/' + req.collectionName);
   });
 };
+
+exports.callbackDocument = function(Models){
+    return function(req, res, next){
+        if(Models[req.dbName] && Models[req.dbName].collections[req.collectionName] && Models[req.dbName].collections[req.collectionName] && config.options.callbackUpdate[req.dbName] && config.options.callbackUpdate[req.dbName][req.collectionName]){
+
+            var trigger = config.options.callbackUpdate[req.dbName][req.collectionName].modelMethod;
+            var coll = Models[req.dbName].collections[req.collectionName];
+            coll.findOne({id:req.document_id}).exec(function(err,co){
+                if(co[trigger]){
+                    co[trigger](function(err,status){
+                        if(err){
+                            req.session.error = "Error in trigger "+trigger;
+                            return res.redirect('back')
+                        }
+                        req.session.success = "Method " + trigger + " of model success.";
+                        return res.redirect('back')
+                    });
+                }else{
+                    req.session.error = "Not callback method " + trigger +" find.";
+                    return res.redirect('back');        
+                }
+            });
+        
+        }else{
+            req.session.error = "Not callback method find.";
+            return res.redirect('back');
+        }
+    };
+}
