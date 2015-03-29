@@ -6,7 +6,7 @@ var mongodb = require('mongodb');
 
 exports.viewDocument = function(req, res, next) {
   var ctx = {
-    title: 'Viewing Document: !!' + req.document._id,
+    title:req.collectionName.toUpperCase() +'-> Viewing Document: ' + req.document._id,
     editorTheme: config.options.editorTheme,
     docString: bson.toString(req.document),
     relations:req.relations,
