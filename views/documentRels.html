@@ -43,14 +43,17 @@
 
 {% block content %}
 {% if buttonCallUpdate[collectionName] %}
-<form method="POST" action="callback/{{ dbName }}/{{ collectionName }}/{{ document._id|to_string }}">
-  <input type="hidden" name="_method" value="put">
-  <button type="submit" class="btn btn-primary btn-large"{# onclick="return checkJSON()"#}>
-    <i class="icon-search icon-white"></i>
-    {{ buttonCallUpdate[collectionName].button  }}
-  </button>
+    {% for button in buttonCallUpdate[collectionName] %}
+        <form method="POST" action="callback/{{ dbName }}/{{ collectionName }}/{{ document._id|to_string }}">
+            <input type="hidden" name="_method" value="put">
+            <input type="hidden" name="func" value="{{button.modelMethod}}">
+            <button type="submit" class="btn btn-primary btn-large"{# onclick="return checkJSON()"#}>
+            <i class="icon-search icon-white"></i>
+            {{ button.text  }}
+            </button>
+        </form>
+    {% endfor %}
 
-</form>
 {% endif %}
 <form method="POST" action="db/{{ dbName }}/{{ collectionName }}/{{ document._id|to_string }}">
   <input type="hidden" name="_method" value="put">
@@ -100,16 +103,22 @@
                     <a href="db/{{ dbName }}/{{ relationsName[rel] }}/{{ val.id  }}">{{ val.id }}</a>
 
 <!--FORM hay que factorizar esto!-->
-    {% if buttonCallUpdate[relationsName[rel]] %}
-    <form method="POST" action="callback/{{ dbName }}/{{ relationsName[rel] }}/{{ val.id }}">
-      <input type="hidden" name="_method" value="put">
-      <button type="submit" class="btn btn-primary btn-large"{# onclick="return checkJSON()"#}>
-        <i class="icon-search icon-white"></i>
-        {{ buttonCallUpdate[relationsName[rel]].button  }}
-      </button>
 
-    </form>
-    {% endif %}
+{% if buttonCallUpdate[relationsName[rel]] %}
+    {% for button in buttonCallUpdate[relationsName[rel]] %}
+        <form method="POST" action="callback/{{ dbName }}/{{ relationsName[rel] }}/{{ val.id }}">
+            <input type="hidden" name="_method" value="put">
+            <input type="hidden" name="func" value="{{button.modelMethod}}">
+            <button type="submit" class="btn btn-primary btn-large"{# onclick="return checkJSON()"#}>
+            <i class="icon-search icon-white"></i>
+            {{ button.text  }}
+            </button>
+        </form>
+    {% endfor %}
+
+{% endif %}
+
+
     <form method="POST" action="db/{{ dbName }}/{{ relationsName[rel] }}/{{ val.id }}">
         <input type="hidden" name="_method" value="put">
         <button type="submit" class="btn btn-success btn-large"{# onclick="return checkJSON()"#}>
@@ -144,15 +153,22 @@
                     {%if relations[rel] %}
                         <a href="db/{{ dbName }}/{{ relationsName[rel] }}/{{ relations[rel].id  }}">{{ relations[rel].id }}</a>
 <!--FORM hay que factorizar esto!-->
-    {% if buttonCallUpdate[relationsName[rel]] %}
-    <form method="POST" action="callback/{{ dbName }}/{{ relationsName[rel] }}/{{ relations[rel].id }}">
-      <input type="hidden" name="_method" value="put">
-      <button type="submit" class="btn btn-primary btn-large"{# onclick="return checkJSON()"#}>
-        <i class="icon-search icon-white"></i>
-        {{ buttonCallUpdate[relationsName[rel]].button  }}
-      </button>
-    </form>
-    {% endif %}
+
+
+{% if buttonCallUpdate[relationsName[rel]] %}
+    {% for button in buttonCallUpdate[relationsName[rel]] %}
+        <form method="POST" action="callback/{{ dbName }}/{{ relationsName[rel] }}/{{ relations[rel].id }}">
+            <input type="hidden" name="_method" value="put">
+            <input type="hidden" name="func" value="{{button.modelMethod}}">
+            <button type="submit" class="btn btn-primary btn-large"{# onclick="return checkJSON()"#}>
+            <i class="icon-search icon-white"></i>
+            {{ button.text  }}
+            </button>
+        </form>
+    {% endfor %}
+
+{% endif %}
+
 
     <form method="POST" action="db/{{ dbName }}/{{ relationsName[rel] }}/{{ relations[rel].id }}">
         <input type="hidden" name="_method" value="put">

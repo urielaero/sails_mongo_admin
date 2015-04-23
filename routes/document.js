@@ -119,20 +119,55 @@ exports.deleteDocument = function(req, res, next) {
 
 exports.callbackDocument = function(Models){
     return function(req, res, next){
-        if(Models[req.dbName] && Models[req.dbName].collections[req.collectionName] && Models[req.dbName].collections[req.collectionName] && config.options.callbackUpdate[req.dbName] && config.options.callbackUpdate[req.dbName][req.collectionName]){
+        console.log(req.body.func);
 
-            var trigger = config.options.callbackUpdate[req.dbName][req.collectionName].modelMethod;
+        var methodOfModel = req.body.func;
+
+        if(Models[req.dbName] && Models[req.dbName].collections[req.collectionName] && Models[req.dbName].collections[req.collectionName] && config.options.callbackUpdate[req.dbName] && config.options.callbackUpdate[req.dbName][req.collectionName]){
+            console.log("PASO IF")
+            var buttons = config.options.callbackUpdate[req.dbName][req.collectionName] || [];
+            var exist = false;
+            for(var button=0;button<buttons.length;button++){
+                console.log(buttons[button]);
+                if(buttons[button].modelMethod == methodOfModel){
+                    console.log("exist");
+                    exist = true;
+                    break;
+                }    
+            }
+
+            var trigger = exist?methodOfModel:false;
             var coll = Models[req.dbName].collections[req.collectionName];
+
             coll.findOne({id:req.document_id}).exec(function(err,co){
-                if(co[trigger]){
+                if(co[trigger]){ 
                     co[trigger](function(err,status){
                         if(err){
                             req.session.error = "Error in trigger "+trigger;
-                            return res.redirect('back')
+                            return res.redirect('back');
                         }
                         req.session.success = "Method " + trigger + " of model success.";
-                        return res.redirect('back')
+                        return res.redirect('back');
                     });
+                }else if(trigger == 'clone'){
+                    var baseId = co.id;
+                    delete co.id;
+                    console.log("Clonado",co);
+                    coll.create(co).exec(function(err,nCo){
+                        console.log(err,nCo);
+                        req.session.success = "Method " + trigger + " of model success. base id: " + baseId;
+                        if(nCo.insertCloneElastic){
+                            nCo.insertCloneElastic(baseId,function(err){
+                                req.session.success += err?', Elastic insert success!':'Failed!'; 
+                                return res.redirect('/db/'+req.dbName+'/'+req.collectionName+'/'+nCo.id);
+                            });
+                        
+                        }else{
+                            return res.redirect('/db/'+req.dbName+'/'+req.collectionName+'/'+nCo.id);
+                        }
+                    });
+
+
                 }else{
                     req.session.error = "Not callback method " + trigger +" find.";
                     return res.redirect('back');        
